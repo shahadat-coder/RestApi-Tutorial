@@ -1,114 +1,111 @@
-import 'dart:convert';
-
-import 'package:fade_shimmer/fade_shimmer.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:rest_api/models/GetProductModel.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:http/http.dart' as http;
-import 'package:rest_api/screens/description_screen.dart';
 
-class GetProductScreen extends StatefulWidget {
-  const GetProductScreen({super.key});
+class UploadImageScreen extends StatefulWidget {
+  const UploadImageScreen({super.key});
 
   @override
-  State<GetProductScreen> createState() => _GetProductScreenState();
+  State<UploadImageScreen> createState() => _UploadImageScreenState();
 }
 
-class _GetProductScreenState extends State<GetProductScreen> {
+class _UploadImageScreenState extends State<UploadImageScreen> {
+  File? image;
+  final _picker = ImagePicker();
+  bool showSpinner = false;
+
+  Future getImage()async{
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality:  80);
+
+    if(pickedFile!= null){
+      image = File(pickedFile.path);
+      setState(() {
+
+      });
+    }else{
+      print('no image selected');
+    }
+  }
+  Future<void> uploadImage()async{
+    setState(() {
+      showSpinner = true;
+    });
+    var stream = new http.ByteStream(image!.openRead());
+    stream.cast();
+
+    var length = await image!.length();
+    var uri = Uri.parse('https://fakestoreapi.com/products');
+    var request = new http.MultipartRequest('POST', uri);
+    request.fields['title'] = "Static title";
+    var multiport = new http.MultipartFile(
+        'image',
+        stream,
+        length
+    );
+    request.files.add(multiport);
+
+    var response = await request.send();
+
+    if(response.statusCode == 200){
+      setState(() {
+        showSpinner = false;
+      });
+      print('image uploaded');
+    }else{
+      setState(() {
+        showSpinner = false;
+      });
+      print('failed');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<GetProductModel> productGet = [];
-    Future<List<GetProductModel>> getProductFind() async {
-      final response =
-          await http.get(Uri.parse('https://fakestoreapi.com/products'));
-      var data = jsonDecode(response.body.toString());
-      if (response.statusCode == 200) {
-        for (Map s in data) {
-          productGet.add(GetProductModel.fromJson(s));
-        }
-        return productGet;
-      } else {
-        return productGet;
-      }
-    }
-
-    return Scaffold(
+    return ModalProgressHUD(
+      inAsyncCall: showSpinner,
+      child: Scaffold(
         appBar: AppBar(
-          title: const Text('Upload Image'),
+          title: Text("Upload image"),
         ),
-        body: Expanded(
-            child: FutureBuilder(
-                future: getProductFind(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const FadeShimmer(
-                      height: 8,
-                      width: 150,
-                      radius: 4,
-                      highlightColor: Color(0xffF9F9FB),
-                      baseColor: Color(0xffE6E8EB),
-                    );
-                  } else {
-                    return ListView.builder(
-                        itemCount: productGet.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                    (context),
-                                    MaterialPageRoute(
-                                        builder: (context) => DescriptionScreen(
-                                            model: productGet[index])));
-                              },
-                              child: Card(
-                                child: ListTile(
-                                  leading: SizedBox(
-                                    height: 50,
-                                    width: 50,
-                                    child: Image.network(
-                                      productGet[index].image.toString(),
-                                    ),
-                                  ),
-                                  title: Text(
-                                    productGet[index].title.toString(),
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        productGet[index].category.toString(),
-                                        style: const TextStyle(
-                                            color: Colors.green),
-                                      ),
-                                      const SizedBox(
-                                        height: 3,
-                                      ),
-                                      Chip(
-                                        side: const BorderSide(width: 0),
-                                        elevation: 5,
-                                        backgroundColor: Colors.greenAccent,
-                                        label: Text(
-                                          productGet[index].price.toString(),
-                                          style: const TextStyle(
-                                              color: Colors.black),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  trailing:
-                                      Text(productGet[index].rating.toString()),
-                                ),
-                              ),
-                            ),
-                          );
-                        });
-                  }
-                })));
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+                InkWell(
+                  onTap: (){
+                    getImage();
+                  },
+                  child: Container(
+                    child: image == null ? Center(child: Text('Pick Image'),):
+                    Container(
+                      child: Center(
+                        child: Image.file(
+                          File(image!.path).absolute,
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            SizedBox(height: 150,),
+            InkWell(
+              onTap: (){
+               uploadImage();
+              },
+              child: Container(
+                color: Colors.teal,
+                height: 50,
+                width: 200,
+                child: Center(child: Text('Upload image')),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

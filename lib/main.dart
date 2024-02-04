@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rest_api/screens/GetProduct.dart';
 import 'package:rest_api/screens/Photos_screens.dart';
 import 'package:rest_api/screens/SignUp_screen.dart';
 import 'package:rest_api/screens/album_screen.dart';
@@ -21,13 +22,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Rest Api Demo',
       theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
 
-      home: const GetProductScreen(),
+      home: const UploadImageScreen(),
     );
   }
 }
